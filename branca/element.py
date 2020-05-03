@@ -10,15 +10,12 @@ import base64
 import json
 import warnings
 from collections import OrderedDict
+from urllib.request import urlopen
 from uuid import uuid4
 
 from jinja2 import Environment, PackageLoader, Template
 
-from six import binary_type, text_type
-from six.moves.urllib.request import urlopen
-
 from .utilities import _camelify, _parse_size, none_max, none_min
-
 
 ENV = Environment(loader=PackageLoader('branca', 'templates'))
 
@@ -160,7 +157,7 @@ class Element(object):
         close_file : bool, default True
             Whether the file has to be closed after write.
         """
-        if isinstance(outfile, text_type) or isinstance(outfile, binary_type):
+        if isinstance(outfile, str) or isinstance(outfile, bytes):
             fid = open(outfile, 'wb')
         else:
             fid = outfile
@@ -338,6 +335,7 @@ class Figure(Element):
             iframe = (
             '<div style="width:{width};">'
             '<div style="position:relative;width:100%;height:0;padding-bottom:{ratio};">'  # noqa
+            '<span style="color:#565656">Make this Notebook Trusted to load map: File -> Trust Notebook</span>'  # noqa
             '<iframe src="about:blank" style="position:absolute;width:100%;height:100%;left:0;top:0;'  # noqa
             'border:none !important;" '
             'data-html={html} onload="{onload}" '
@@ -559,7 +557,7 @@ class IFrame(Element):
             self.width = str(60*figsize[0])+'px'
             self.height = str(60*figsize[1])+'px'
 
-        if isinstance(html, text_type) or isinstance(html, binary_type):
+        if isinstance(html, str) or isinstance(html, bytes):
             self.add_child(Element(html))
         elif html is not None:
             self.add_child(html)
