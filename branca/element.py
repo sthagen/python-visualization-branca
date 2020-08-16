@@ -10,6 +10,7 @@ import base64
 import json
 import warnings
 from collections import OrderedDict
+import urllib.parse
 from urllib.request import urlopen
 from uuid import uuid4
 
@@ -319,37 +320,43 @@ class Figure(Element):
         return self._template.render(this=self, kwargs=kwargs)
 
     def _repr_html_(self, **kwargs):
-        """Displays the Figure in a Jupyter notebook."""
-        # Base64-encoded HTML is stored in a data-html attribute, which is used to populate
-        # the iframe. This approach does not encounter the 2MB limit in Chrome for storing
-        # the HTML in the src attribute with a data URI. The alternative of using a srcdoc
-        # attribute is not supported in Microsoft Internet Explorer and Edge.
-        html = base64.b64encode(self.render(**kwargs).encode('utf8')).decode('utf8')
+        """Displays the Figure in a Jupyter notebook.
+
+        Percent-encoded HTML is stored in data-html attribute, which is used to populate
+        the iframe. This approach does not encounter the 2MB limit in Chrome for storing
+        the HTML in the src attribute with a data URI. The alternative of using a srcdoc
+        attribute is not supported in Microsoft Internet Explorer and Edge.
+
+        """
+        html = urllib.parse.quote(self.render(**kwargs))
         onload = (
             'this.contentDocument.open();'
-            'this.contentDocument.write(atob(this.getAttribute(\'data-html\')));'
+            'this.contentDocument.write('
+            '    decodeURIComponent(this.getAttribute(\'data-html\'))'
+            ');'
             'this.contentDocument.close();'
         )
 
         if self.height is None:
             iframe = (
-            '<div style="width:{width};">'
-            '<div style="position:relative;width:100%;height:0;padding-bottom:{ratio};">'  # noqa
-            '<span style="color:#565656">Make this Notebook Trusted to load map: File -> Trust Notebook</span>'  # noqa
-            '<iframe src="about:blank" style="position:absolute;width:100%;height:100%;left:0;top:0;'  # noqa
-            'border:none !important;" '
-            'data-html={html} onload="{onload}" '
-            'allowfullscreen webkitallowfullscreen mozallowfullscreen>'
-            '</iframe>'
-            '</div></div>').format
-            iframe = iframe(html=html, onload=onload, width=self.width, ratio=self.ratio)
+                '<div style="width:{width};">'
+                '<div style="position:relative;width:100%;height:0;padding-bottom:{ratio};">'  # noqa
+                '<span style="color:#565656">Make this Notebook Trusted to load map: File -> Trust Notebook</span>'  # noqa
+                '<iframe src="about:blank" style="position:absolute;width:100%;height:100%;left:0;top:0;'  # noqa
+                'border:none !important;" '
+                'data-html={html} onload="{onload}" '
+                'allowfullscreen webkitallowfullscreen mozallowfullscreen>'
+                '</iframe>'
+                '</div></div>'
+            ).format(html=html, onload=onload, width=self.width, ratio=self.ratio)
         else:
-            iframe = ('<iframe src="about:blank" width="{width}" height="{height}"'
-                      'style="border:none !important;" '
-                      'data-html={html} onload="{onload}" '
-                      '"allowfullscreen" "webkitallowfullscreen" "mozallowfullscreen">'  # noqa
-                      '</iframe>').format
-            iframe = iframe(html=html, onload=onload, width=self.width, height=self.height)
+            iframe = (
+                '<iframe src="about:blank" width="{width}" height="{height}"'
+                'style="border:none !important;" '
+                'data-html={html} onload="{onload}" '
+                '"allowfullscreen" "webkitallowfullscreen" "mozallowfullscreen">'
+                '</iframe>'
+            ).format(html=html, onload=onload, width=self.width, height=self.height)
         return iframe
 
     def add_subplot(self, x, y, n, margin=0.05):
@@ -569,19 +576,18 @@ class IFrame(Element):
 
         if self.height is None:
             iframe = (
-            '<div style="width:{width};">'
-            '<div style="position:relative;width:100%;height:0;padding-bottom:{ratio};">'  # noqa
-            '<iframe src="{html}" style="position:absolute;width:100%;height:100%;left:0;top:0;'  # noqa
-            'border:none !important;">'
-            '</iframe>'
-            '</div></div>').format
-            iframe = iframe(html=html,
-                            width=self.width,
-                            ratio=self.ratio)
+                '<div style="width:{width};">'
+                '<div style="position:relative;width:100%;height:0;padding-bottom:{ratio};">'  # noqa
+                '<iframe src="{html}" style="position:absolute;width:100%;height:100%;left:0;top:0;'  # noqa
+                'border:none !important;">'
+                '</iframe>'
+                '</div></div>'
+            ).format(html=html, width=self.width, ratio=self.ratio)
         else:
-            iframe = ('<iframe src="{html}" width="{width}" style="border:none !important;" '
-                      'height="{height}"></iframe>').format
-            iframe = iframe(html=html, width=self.width, height=self.height)
+            iframe = (
+                '<iframe src="{html}" width="{width}" style="border:none !important;" '
+                'height="{height}"></iframe>'
+            ).format(html=html, width=self.width, height=self.height)
         return iframe
 
 
